@@ -1,5 +1,8 @@
+using BuberBreakfast.Middlewares;
 using BuberBreakfast.Models;
+using BuberBreakfast.Services.Breakfasts;
 using BuberBreakfastContracts.Breakfast;
+using ErrorOr;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BuberBreakfast.Controllers;
@@ -8,6 +11,13 @@ namespace BuberBreakfast.Controllers;
 [Route("breakfasts")]
 public class BreakfastsController : ControllerBase
 {
+    private readonly IBreakfastService _breakfastService;
+
+    public BreakfastsController(IBreakfastService breakfastService)
+    {
+        _breakfastService = breakfastService;
+    }
+
     [HttpPost()]
     public IActionResult CreateBreakfast(CreateBreakfastRequest request)
     {
@@ -22,6 +32,8 @@ public class BreakfastsController : ControllerBase
             request.Sweet
         );
 
+        _breakfastService.CreateBreakfast(breakfast);
+
         var response = new BreakfastResponse(
             breakfast.Id,
             breakfast.Name,
@@ -33,24 +45,59 @@ public class BreakfastsController : ControllerBase
             breakfast.Sweet
         );
 
-        return CreatedAtAction(nameof(GetBreakfast), new { id = breakfast.Id }, response);
+        return CreatedAtAction(actionName: nameof(GetBreakfast), routeValues: new { id = breakfast.Id }, value: response);
     }
 
     [HttpGet("{id:guid}")]
     public IActionResult GetBreakfast(Guid id)
     {
-        return Ok(id);
+        ErrorOr<Breakfast> getBreakfastResult = _breakfastService.GetBreakfast(id);
+
+        if(getBreakfastResult.IsError && getBreakfastResult.FirstError == Errors.Breakfast.NotFound)
+        {
+            return NotFound();
+        }
+
+        var breakfast = getBreakfastResult.Value;
+
+        var response = new BreakfastResponse(
+            breakfast.Id,
+            breakfast.Name,
+            breakfast.Description,
+            breakfast.StartDateTime,
+            breakfast.EndDateTime,
+            breakfast.LastModifiedDateTime,
+            breakfast.Savory,
+            breakfast.Sweet
+        );
+
+        return Ok(response);
     }
 
     [HttpPut("{id:guid}")]
     public IActionResult UpsertBreakfast(Guid id, UpsertBreakfastRequest request)
     {
-        return Ok(request);
+         var breakfast = new Breakfast(
+            id,
+            request.Name,
+            request.Description,
+            request.StartDateTime,
+            request.EndDateTime,
+            DateTime.UtcNow,
+            request.Savory,
+            request.Sweet
+        );
+
+        _breakfastService.UpsertBreakfast(breakfast);
+
+        return NoContent();
     }
 
     [HttpDelete("{id:guid}")]
     public IActionResult DeleteBreakfast(Guid id)
     {
-        return Ok(id);
+        _breakfastService.DeleteBreakfast(id);
+
+        return NoContent();
     }
 }
