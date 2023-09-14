@@ -1,14 +1,14 @@
-using BuberBreakfast.Middlewares;
 using BuberBreakfast.Models;
 using BuberBreakfast.Services.Breakfasts;
 using BuberBreakfastContracts.Breakfast;
-using ErrorOr;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BuberBreakfast.Controllers;
 
 [ApiController]
 [Route("breakfasts")]
+[Authorize(Roles = "user")]
 public class BreakfastsController : ControllerBase
 {
     private readonly IBreakfastService _breakfastService;
@@ -19,20 +19,18 @@ public class BreakfastsController : ControllerBase
     }
 
     [HttpPost()]
-    public IActionResult CreateBreakfast(CreateBreakfastRequest request)
+    public async Task<IActionResult> CreateBreakfast(CreateBreakfastRequest request)
     {
         var breakfast = new Breakfast(
             Guid.NewGuid(),
             request.Name,
             request.Description,
-            request.StartDateTime,
-            request.EndDateTime,
             DateTime.UtcNow,
-            request.Savory,
-            request.Sweet
+            DateTime.UtcNow,
+            DateTime.UtcNow
         );
 
-        _breakfastService.CreateBreakfast(breakfast);
+        await _breakfastService.CreateBreakfast(breakfast);
 
         var response = new BreakfastResponse(
             breakfast.Id,
@@ -40,53 +38,36 @@ public class BreakfastsController : ControllerBase
             breakfast.Description,
             breakfast.StartDateTime,
             breakfast.EndDateTime,
-            breakfast.LastModifiedDateTime,
-            breakfast.Savory,
-            breakfast.Sweet
+            breakfast.LastModifiedDateTime
         );
 
         return CreatedAtAction(actionName: nameof(GetBreakfast), routeValues: new { id = breakfast.Id }, value: response);
     }
 
     [HttpGet("{id:guid}")]
-    public IActionResult GetBreakfast(Guid id)
+    public async Task<IActionResult> GetBreakfast(Guid id)
     {
-        ErrorOr<Breakfast> getBreakfastResult = _breakfastService.GetBreakfast(id);
+        Breakfast? breakfast = await _breakfastService.GetBreakfast(id);
 
-        if(getBreakfastResult.IsError && getBreakfastResult.FirstError == Errors.Breakfast.NotFound)
+        if (breakfast == null)
         {
             return NotFound();
         }
 
-        var breakfast = getBreakfastResult.Value;
-
-        var response = new BreakfastResponse(
-            breakfast.Id,
-            breakfast.Name,
-            breakfast.Description,
-            breakfast.StartDateTime,
-            breakfast.EndDateTime,
-            breakfast.LastModifiedDateTime,
-            breakfast.Savory,
-            breakfast.Sweet
-        );
-
-        return Ok(response);
+        return Ok(breakfast);
     }
 
     [HttpPut("{id:guid}")]
     public IActionResult UpsertBreakfast(Guid id, UpsertBreakfastRequest request)
     {
-         var breakfast = new Breakfast(
-            id,
-            request.Name,
-            request.Description,
-            request.StartDateTime,
-            request.EndDateTime,
-            DateTime.UtcNow,
-            request.Savory,
-            request.Sweet
-        );
+        var breakfast = new Breakfast(
+           id,
+           request.Name,
+           request.Description,
+           request.StartDateTime,
+           request.EndDateTime,
+           DateTime.UtcNow
+       );
 
         _breakfastService.UpsertBreakfast(breakfast);
 

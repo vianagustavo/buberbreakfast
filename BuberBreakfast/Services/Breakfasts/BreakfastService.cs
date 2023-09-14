@@ -1,25 +1,29 @@
 using BuberBreakfast.Middlewares;
 using BuberBreakfast.Models;
+using BuberBreakfast.Repositories;
 using ErrorOr;
 
 namespace BuberBreakfast.Services.Breakfasts;
 
 public class BreakfastService : IBreakfastService
 {
-    private static readonly Dictionary<Guid, Breakfast> _breakfasts = new ();
-    public void CreateBreakfast(Breakfast breakfast)
+    private static readonly Dictionary<Guid, Breakfast> _breakfasts = new();
+    private readonly IBreakfastsRepository _repository;
+
+    public BreakfastService(IBreakfastsRepository repository)
     {
-        _breakfasts.Add(breakfast.Id, breakfast);
+        _repository = repository;
+    }
+    public async Task CreateBreakfast(Breakfast breakfast)
+    {
+        await _repository.CreateBreakfast(breakfast);
     }
 
-    public ErrorOr<Breakfast> GetBreakfast(Guid id)
+    public async Task<Breakfast?> GetBreakfast(Guid id)
     {
-        if(_breakfasts.TryGetValue(id, out var breakfast))
-        {
-            return breakfast;
-        }
+        var breakfast = await _repository.GetBreakfast(id);
 
-        return Errors.Breakfast.NotFound;
+        return breakfast;
     }
 
     public void UpsertBreakfast(Breakfast breakfast)
@@ -27,7 +31,7 @@ public class BreakfastService : IBreakfastService
         _breakfasts[breakfast.Id] = breakfast;
     }
 
-       public void DeleteBreakfast(Guid id)
+    public void DeleteBreakfast(Guid id)
     {
         _breakfasts.Remove(id);
     }

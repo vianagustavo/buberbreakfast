@@ -31,7 +31,7 @@ POST / breakfasts;
   "savory": ["Oatmeal", "Avocado Toast", "Omelette", "Salad"],
   "Sweet": ["Cookie"]
 }
-```
+```/-+
 
 ### Create Breakfast Response
 
@@ -58,7 +58,7 @@ Location: {{host}}/Breakfasts/{{id}}
 
 ## Get Breakfast
 
-### Get Breakfast Request
+### Get Breakfast Request                                                                                                                                                                              
 
 ```js
 GET /breakfasts/{{id}}
